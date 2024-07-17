@@ -28,3 +28,4 @@ plt.bar(1, np.mean(b))
 
 # show the plot in a pylustrator window
 plt.show()
+

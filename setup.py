@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # setup.py
 
-# Copyright (c) 2016-2020, Richard Gerum
+# Copyright (c) 2016-2019, Richard Gerum
 #
 # This file is part of Pylustrator.
 #
@@ -21,25 +21,27 @@
 
 from setuptools import setup
 
-# read the contents of your README file
-from pathlib import Path
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+long_description = ""
+try:
+    long_description = open('readme.rst').read()
+except FileNotFoundError:
+    pass
 
 setup(name='pylustrator',
-      version="1.3.0",
+      version="0.9.4",
       description='Adds interactivity to arrange panels in matplotlib',
       long_description=long_description,
-      url='https://github.com/rgerum/pylustrator',
+      url='https://bitbucket.org/fabry_biophysics/pylustrator',
       license="GPLv3",
       author='Richard Gerum',
       author_email='richard.gerum@fau.de',
-      packages=['pylustrator', 'pylustrator.components'],
-      include_package_data=True,
+      packages=['pylustrator'],
       install_requires=[
           'natsort',
           'numpy',
           'matplotlib',
+          'pyqt5',
+          'qtpy',
           'qtawesome',
           'scikit-image'
       ],

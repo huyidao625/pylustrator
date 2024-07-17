@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # matplotlibwidget.py
 
-# Copyright (c) 2016-2020, Richard Gerum
+# Copyright (c) 2016-2019, Richard Gerum
 #
 # This file is part of Pylustrator.
 #
@@ -34,59 +34,69 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 
 __version__ = "1.0.0"
 
-import sys
-import time
-
 import qtawesome as qta
-from matplotlib.backends.qt_compat import QtWidgets, QtCore
-try:  # for matplotlib > 3.0
-    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
-except ModuleNotFoundError:
-    from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+from qtpy import QtWidgets, QtCore
+from qtpy import API_NAME as QT_API_NAME
+
+if QT_API_NAME.startswith("PyQt4"):
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt4agg import FigureManager
+    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+else:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt5agg import FigureManager
+    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 
-class MatplotlibWidget(FigureCanvas):
-    quick_draw = True
+class MatplotlibWidget(Canvas):
+    """
+    MatplotlibWidget inherits PyQt4.QtGui.QWidget
+    and matplotlib.backend_bases.FigureCanvasBase
+    
+    Options: option_name (default_value)
+    -------    
+    parent (None): parent widget
+    title (''): figure title
+    xlabel (''): X-axis label
+    ylabel (''): Y-axis label
+    xlim (None): X-axis limits ([min, max])
+    ylim (None): Y-axis limits ([min, max])
+    xscale ('linear'): X-axis scale
+    yscale ('linear'): Y-axis scale
+    width (4): width in inches
+    height (3): height in inches
+    dpi (100): resolution in dpi
+    hold (False): if False, figure will be cleared each time plot is called
+    
+    Widget attributes:
+    -----------------
+    figure: instance of matplotlib.figure.Figure
+    axes: figure axes
+    
+    Example:
+    -------
+    self.widget = MatplotlibWidget(self, yscale='log', hold=True)
+    from numpy import linspace
+    x = linspace(-10, 10)
+    self.widget.axes.plot(x, x**2)
+    self.wdiget.axes.plot(x, x**3)
+    """
 
-    def __init__(self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs):
+    def __init__(self, parent=None, size=None, dpi=100, figure=None):
         if figure is None:
-            self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
+            self.figure = Figure(figsize=size, dpi=dpi)
         else:
             self.figure = figure
-
-        super().__init__(self.figure)
+        self.figure.number = 1
+        Canvas.__init__(self, self.figure)
         self.setParent(parent)
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.updateGeometry()
-        
+
         self.manager = FigureManager(self, 1)
         self.manager._cidgcf = self.figure
 
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(300)
-        self.timer.timeout.connect(self.draw)
-    timer = None
-    def schedule_draw(self):
-        if self.quick_draw is True:
-            return super().draw()
-        if not self.timer.isActive():
-            self.timer.start()
-
-    def draw(self):
-        self.timer.stop()
-        import traceback
-        #print(traceback.print_stack())
-        t = time.time()
-        super().draw()
-        duration = time.time() - t
-        # if drawing is slow delay the drawing a bit to create a more smooth experience
-        if duration > 0.1:
-            self.quick_draw = False
-        else:
-            self.quick_draw = True
-        
     def show(self):
         self.draw()
 
@@ -98,31 +108,13 @@ class MatplotlibWidget(FigureCanvas):
         return QtCore.QSize(10, 10)
 
 
-def make_pickelable(cls):
-    def __getstate__(self):
-        return {}
-
-    def __setstate__(self, state):
-        self.__init__()
-
-    cls.__getstate__ = __getstate__
-    cls.__setstate__ = __setstate__
-
-
-try:
-    make_pickelable(NavigationToolbar)
-    make_pickelable(MatplotlibWidget)
-except AttributeError:
-    pass
-
-
 class CanvasWindow(QtWidgets.QWidget):
     signal = QtCore.Signal()
 
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure %s" % num)
-        self.setWindowIcon(qta.icon("fa5s.bar-chart"))
+        self.setWindowIcon(qta.icon("fa.bar-chart"))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)

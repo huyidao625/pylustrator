@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # raise_version_number.py
 
-# Copyright (c) 2016-2020, Richard Gerum
+# Copyright (c) 2016-2019, Richard Gerum
 #
 # This file is part of Pylustrator.
 #
@@ -19,37 +19,37 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
+from __future__ import print_function, division
 import os
 import sys
 
-from release_tools import replace_version, get_setup_properties
+from release_tools import check_for_uncommited_changes, replace_version, get_current_version
 
-properties = get_setup_properties()
 
-current_version = properties["version"]
-package_name = properties["name"]
+current_version = get_current_version()
 
 # check for new version name as command line argument
 try:
     new_version = sys.argv[1]
 except IndexError:
-    print(f"ERROR: no new version number supplied. Current {package_name} version is {current_version}", file=sys.stderr)
+    print("ERROR: no new version number supplied.", file=sys.stderr)
     sys.exit(1)
 
 # check if new version name differs
 if current_version == new_version:
-    print(f"ERROR: new {package_name} version {new_version} is the same as old version {current_version}.", file=sys.stderr)
+    print("ERROR: new version is the same as old version.", file=sys.stderr)
     sys.exit(1)
 
-print(f"setting {package_name} version number from {current_version} to {new_version}")
+print("setting version number to", new_version)
 
-files = ["setup.py", "meta.yaml", "docs/conf.py", package_name+"/__init__.py"]
+# check for uncommitted changes
+check_for_uncommited_changes()
 
 # Let's go
-for file in files:
-    if replace_version(file, current_version, new_version):
-        os.system(f"git add {file}")
-    
+replace_version("setup.py", current_version, new_version)
+replace_version("docs/conf.py", current_version, new_version)
+replace_version("pylustrator/__init__.py", current_version, new_version)
+
 # commit changes
-os.system("git commit -m \"set version to v%s\"" % new_version)
-os.system("git tag \"v%s\"" % new_version)
+os.system("hg commit -m \"set version to v%s\"" % new_version)
+os.system("hg tag \"v%s\"" % new_version)

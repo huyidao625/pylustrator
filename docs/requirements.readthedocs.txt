@@ -1,5 +1,2 @@
 sphinxcontrib-bibtex
 nbsphinx
-matplotlib
-pyside2
-qtpy
