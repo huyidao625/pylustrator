@@ -29,4 +29,7 @@ requires:
     - qtpy
     - qtawesome
 
+
+.. image:: demo.png
+    :scale: 90
     
