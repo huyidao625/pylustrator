@@ -84,19 +84,23 @@ def initialize():
                         keys_for_lines[stack_item.lineno] = key
                         break
             return func(axes, *args, **kwargs)
-        return f
-    #Axes.text = wrap(Axes.text, fig=False, text="New Text")
-    #Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
 
-    #Figure.text = wrap(Figure.text, fig=True, text="New Text")
-    #Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
+        return f
+
+    # Axes.text = wrap(Axes.text, fig=False, text="New Text")
+    # Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
+
+    # Figure.text = wrap(Figure.text, fig=True, text="New Text")
+    # Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
     plt.keys_for_lines = keys_for_lines
 
     # store the last figure save filename
     sf = Figure.savefig
+
     def savefig(self, filename, *args, **kwargs):
         self._last_saved_figure = filename
         sf(self, filename, *args, **kwargs)
+
     Figure.savefig = savefig
 
 
@@ -114,7 +118,7 @@ def show():
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
         # add dragger
-        #FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
+        # FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
@@ -127,7 +131,7 @@ def figure(num=None, size=None, *args, **kwargs):
     global figures
     # if num is not defined create a new number
     if num is None:
-        num = len(_pylab_helpers.Gcf.figs)+1
+        num = len(_pylab_helpers.Gcf.figs) + 1
     # if number is not defined
     if num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
@@ -145,6 +149,7 @@ def figure(num=None, size=None, *args, **kwargs):
     _pylab_helpers.Gcf.set_active(manager)
     # return the figure
     return manager.canvas.figure
+
 
 def warnAboutTicks(fig):
     import sys
@@ -166,34 +171,39 @@ def warnAboutTicks(fig):
                     ax_name = '"' + ax_name + '"'
                 print("Warning tick and label differ", t, l, "for axes", ax_name, file=sys.stderr)
 
+
 """ Window """
+
 
 class Linkable:
 
-    def link(self, property_name,  signal=None, condition=None, direct=False):
+    def link(self, property_name, signal=None, condition=None, direct=False):
         self.element = None
         self.direct = direct
         if direct:
             parts = property_name.split(".")
             s = self
+
             def get():
                 target = s.element
                 for part in parts:
                     target = getattr(target, part)
                 return target
+
             def set(v):
                 get()
                 target = s.element
                 for part in parts[:-1]:
                     target = getattr(target, part)
                 return setattr(target, parts[-1], v)
+
             self.setLinkedProperty = set
             self.getLinkedProperty = get
             self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
         else:
-            self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
-            self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
-            self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
+            self.setLinkedProperty = lambda text: getattr(self.element, "set_" + property_name)(text)
+            self.getLinkedProperty = lambda: getattr(self.element, "get_" + property_name)()
+            self.serializeLinkedProperty = lambda x: ".set_" + property_name + "(%s)" % x
 
         if condition is None:
             self.condition = lambda x: True
@@ -234,6 +244,7 @@ class Linkable:
     def getSerialized(self):
         return ""
 
+
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(tuple)
     transform = None
@@ -248,7 +259,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.input1 = QtWidgets.QDoubleSpinBox()
-        self.input1.setSuffix(" "+unit)
+        self.input1.setSuffix(" " + unit)
         self.input1.setSingleStep(0.1)
         self.input1.valueChanged.connect(self.onValueChanged)
         self.input1.setMaximum(99999)
@@ -260,7 +271,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.text2)
 
         self.input2 = QtWidgets.QDoubleSpinBox()
-        self.input2.setSuffix(" "+unit)
+        self.input2.setSuffix(" " + unit)
         self.input2.setSingleStep(0.1)
         self.input2.valueChanged.connect(self.onValueChanged)
         self.input2.setMaximum(99999)
@@ -273,8 +284,8 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.text.setText(text)
 
     def setUnit(self, unit):
-        self.input1.setSuffix(" "+unit)
-        self.input2.setSuffix(" "+unit)
+        self.input1.setSuffix(" " + unit)
+        self.input2.setSuffix(" " + unit)
 
     def setTransform(self, transform):
         self.transform = transform
@@ -361,7 +372,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.setText(value)
 
     def getSerialized(self):
-        return "\""+str(self.get())+"\""
+        return "\"" + str(self.get()) + "\""
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
@@ -457,7 +468,7 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         self.setText(value)
 
     def getSerialized(self):
-        return "\""+str(self.get())+"\""
+        return "\"" + str(self.get()) + "\""
 
 
 class CheckWidget(QtWidgets.QWidget):
@@ -528,7 +539,6 @@ class RadioWidget(QtWidgets.QWidget):
         return self.checked
 
 
-
 class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(str)
 
@@ -563,7 +573,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def OpenDialog(self):
         # get new color from color picker
-        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255))
+        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0] * 255))
         self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(plt.rcParams['axes.prop_cycle'].by_key()['color']):
@@ -574,7 +584,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def dialog_rejected(self):
         color = self.current_color
-        color = color.name()+"%0.2x" % color.alpha()
+        color = color.name() + "%0.2x" % color.alpha()
         self.setColor(color)
         self.valueChanged.emit(self.color)
 
@@ -582,7 +592,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         color = self.dialog.currentColor()
         # if a color is set, apply it
         if color.isValid():
-            color = color.name()+"%0.2x" % color.alpha()
+            color = color.name() + "%0.2x" % color.alpha()
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
@@ -591,7 +601,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         self.dialog = None
         # if a color is set, apply it
         if color.isValid():
-            color = color.name()+"%0.2x" % color.alpha()
+            color = color.name() + "%0.2x" % color.alpha()
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
@@ -601,7 +611,8 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             value = "#FF0000FF"
         self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         if len(value) == 9:
-            self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16)*100/255))
+            self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (
+            int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16) * 100 / 255))
         else:
             self.button.setStyleSheet("background-color: %s;" % value)
         self.color = value
@@ -616,14 +627,14 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
     def set(self, value):
         try:
             if len(value) == 4:
-                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1]*255))
+                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1] * 255))
             else:
                 self.setColor(mpl.colors.to_hex(value))
         except ValueError:
             self.setColor(None)
 
     def getSerialized(self):
-        return "\""+self.color+"\""
+        return "\"" + self.color + "\""
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -639,7 +650,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.buttons_align = []
         self.align_names = ["left", "center", "right"]
         for align in self.align_names:
-            button = QtWidgets.QPushButton(qta.icon("fa.align-"+align), "")
+            button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
             self.layout.addWidget(button)
@@ -664,7 +675,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
-        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")#.pixmap(16))
+        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")  # .pixmap(16))
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
@@ -680,8 +691,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         return weight_dict["normal"]
 
     def convertQtWeightToMplWeight(self, weight):
-        weight_dict = {QtGui.QFont.Normal:'normal', QtGui.QFont.Bold:'bold', QtGui.QFont.ExtraBold:'heavy',
-                       QtGui.QFont.Light:'light', QtGui.QFont.Black:'ultrabold', QtGui.QFont.ExtraLight:'ultralight'}
+        weight_dict = {QtGui.QFont.Normal: 'normal', QtGui.QFont.Bold: 'bold', QtGui.QFont.ExtraBold: 'heavy',
+                       QtGui.QFont.Light: 'light', QtGui.QFont.Black: 'ultrabold', QtGui.QFont.ExtraLight: 'ultralight'}
         if weight in weight_dict:
             return weight_dict[weight]
         return "normal"
@@ -695,7 +706,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
         self.target.set_fontname(font.family())
-        self.target.figure.change_tracker.addChange(self.target, ".set_fontname(\"%s\")" % (self.target.get_fontname(),))
+        self.target.figure.change_tracker.addChange(self.target,
+                                                    ".set_fontname(\"%s\")" % (self.target.get_fontname(),))
 
         if font.weight() != font0.weight():
             weight = self.convertQtWeightToMplWeight(font.weight())
@@ -732,7 +744,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             fig = self.target.figure
             fig.change_tracker.removeElement(self.target)
             self.target = None
-            #self.target.set_visible(False)
+            # self.target.set_visible(False)
             fig.canvas.draw()
 
     def changeWeight(self, checked):
@@ -752,7 +764,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_style("italic" if checked else "normal")
-            element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+            element.figure.change_tracker.addChange(element,
+                                                    ".set_style(\"%s\")" % ("italic" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -968,9 +981,9 @@ class MyTreeView(QtWidgets.QTreeView):
         for row, entry in enumerate(query):
             entry.tree_parent = parent_entry
             if 1:
-                if(isinstance(entry, mpl.spines.Spine) or
-                   isinstance(entry, mpl.axis.XAxis) or
-                   isinstance(entry, mpl.axis.YAxis)):
+                if (isinstance(entry, mpl.spines.Spine) or
+                        isinstance(entry, mpl.axis.XAxis) or
+                        isinstance(entry, mpl.axis.YAxis)):
                     continue
                 if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
                     continue
@@ -1031,7 +1044,7 @@ class MyTreeView(QtWidgets.QTreeView):
         # Expand
         if item.expanded is False:
             self.expand(entry)
-            #thread = Thread(target=self.expand, args=(entry,))
+            # thread = Thread(target=self.expand, args=(entry,))
 
         # Start thread as daemonic
         if thread:
@@ -1131,12 +1144,13 @@ class MyTreeView(QtWidgets.QTreeView):
 class QTickEdit(QtWidgets.QWidget):
     def __init__(self, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle("Figure - "+axis+"-Axis - Ticks - Pylustrator")
+        self.setWindowTitle("Figure - " + axis + "-Axis - Ticks - Pylustrator")
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
-        self.label = QtWidgets.QLabel("Ticks can be specified, one tick pre line.\nOptionally a label can be provided, e.g. 1 \"First\",")
+        self.label = QtWidgets.QLabel(
+            "Ticks can be specified, one tick pre line.\nOptionally a label can be provided, e.g. 1 \"First\",")
         self.layout.addWidget(self.label)
 
         self.layout2 = QtWidgets.QHBoxLayout()
@@ -1153,7 +1167,7 @@ class QTickEdit(QtWidgets.QWidget):
 
         self.input_font = TextPropertiesWidget(self.layout)
 
-        self.input_labelpad = NumberWidget(self.layout, axis+"-Labelpad", min=-999)
+        self.input_labelpad = NumberWidget(self.layout, axis + "-Labelpad", min=-999)
         self.input_labelpad.link(axis + "axis.labelpad", signal_target_changed, direct=True)
 
         self.button_ok = QtWidgets.QPushButton("Ok")
@@ -1167,7 +1181,7 @@ class QTickEdit(QtWidgets.QWidget):
         if match:
             _, factor, base, exponent = match.groups()
             if factor is not None:
-                number = float(factor) * float(base)**float(exponent)
+                number = float(factor) * float(base) ** float(exponent)
                 line = "%s x %s^%s" % (factor, base, exponent)
             else:
                 number = float(base) ** float(exponent)
@@ -1211,14 +1225,13 @@ class QTickEdit(QtWidgets.QWidget):
                 number = np.nan
         return number, line
 
-
     def setTarget(self, element):
         self.element = element
         self.fig = element.figure
         min, max = getattr(self.element, "get_" + self.axis + "lim")()
         self.range = [min, max]
 
-        ticks = getattr(self.element, "get_"+self.axis+"ticks")()
+        ticks = getattr(self.element, "get_" + self.axis + "ticks")()
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
         text = []
         for t, l in zip(ticks, labels):
@@ -1250,7 +1263,7 @@ class QTickEdit(QtWidgets.QWidget):
                     text.append("%s" % l_text)
         self.input_ticks2.setText(",<br>".join(text))
 
-        self.input_font.setTarget(getattr(self.element, "get_"+self.axis+"axis")().get_label())
+        self.input_font.setTarget(getattr(self.element, "get_" + self.axis + "axis")().get_label())
 
     def parseTicks(self, string):
         try:
@@ -1292,13 +1305,18 @@ class QTickEdit(QtWidgets.QWidget):
                                               ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
         else:
             self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+                                              ".set_" + self.axis + "lim(%s, %s)" % (
+                                              str(self.range[0]), str(self.range[1])))
 
         # self.setTarget(self.element)
         self.fig.change_tracker.addChange(self.element,
-                                          ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(self.str(t) for t in ticks), self.element, ".set_" + self.axis + "ticks_minor")
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
-            '"' + l + '"' for l in labels), self.element, ".set_" + self.axis + "labels_minor")
+                                          ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(
+                                              self.str(t) for t in ticks), self.element,
+                                          ".set_" + self.axis + "ticks_minor")
+        self.fig.change_tracker.addChange(self.element,
+                                          ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
+                                              '"' + l + '"' for l in labels), self.element,
+                                          ".set_" + self.axis + "labels_minor")
         self.fig.canvas.draw()
 
     def ticksChanged(self):
@@ -1313,12 +1331,16 @@ class QTickEdit(QtWidgets.QWidget):
                                               ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
         else:
             self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+                                              ".set_" + self.axis + "lim(%s, %s)" % (
+                                              str(self.range[0]), str(self.range[1])))
 
-        #self.setTarget(self.element)
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % ", ".join(self.str(t) for t in ticks))
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join('"'+l+'"' for l in labels))
+        # self.setTarget(self.element)
+        self.fig.change_tracker.addChange(self.element,
+                                          ".set_" + self.axis + "ticks([%s])" % ", ".join(self.str(t) for t in ticks))
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join(
+            '"' + l + '"' for l in labels))
         self.fig.canvas.draw()
+
 
 class QAxesProperties(QtWidgets.QWidget):
     def __init__(self, layout, axis, signal_target_changed):
@@ -1330,13 +1352,14 @@ class QAxesProperties(QtWidgets.QWidget):
         self.targetChanged = signal_target_changed
         self.targetChanged.connect(self.setTarget)
 
-        self.input_label = TextWidget(self.layout, axis+"-Label:")
-        self.input_label.link(axis+"label", signal=self.targetChanged)
+        self.input_label = TextWidget(self.layout, axis + "-Label:")
+        self.input_label.link(axis + "label", signal=self.targetChanged)
 
-        self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "")
-        self.input_lim.link(axis+"lim", signal=self.targetChanged)
+        self.input_lim = DimensionsWidget(self.layout, axis + "-Lim:", "-", "")
+        self.input_lim.link(axis + "lim", signal=self.targetChanged)
 
-        self.button_ticks = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+        self.button_ticks = QtWidgets.QPushButton(
+            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
@@ -1401,7 +1424,6 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
-
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
 
@@ -1410,7 +1432,8 @@ class QItemProperties(QtWidgets.QWidget):
 
         TextWidget(layout, "Linestyle:").link("linestyle", self.targetChanged)
 
-        NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged, condition=condition_line)#lambda x: getattr(x, "get_linestyle") not in ["None", " ", ""])
+        NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged,
+                                                condition=condition_line)  # lambda x: getattr(x, "get_linestyle") not in ["None", " ", ""])
 
         QColorWidget(layout, "Color:").link("color", self.targetChanged, condition=condition_line)
 
@@ -1468,9 +1491,10 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddImageClicked(self):
         fig = self.fig
+
         def addChange(element, command):
             fig.change_tracker.addChange(element, command)
-            return eval(getReference(element)+command)
+            return eval(getReference(element) + command)
 
         path = QtWidgets.QFileDialog.getOpenFileName(self, "Open Image", os.getcwd(),
                                                      "Image *.jpg *.png *.tif")
@@ -1486,7 +1510,7 @@ class QItemProperties(QtWidgets.QWidget):
             fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
             self.fig.change_tracker.addChange(self.element,
                                               ".add_axes([0.25, 0.25, 0.5, 0.5], label=\"%s\")  # id=%s.new" % (
-                                              filename, getReference(axes)), axes, ".new")
+                                                  filename, getReference(axes)), axes, ".new")
         addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
         addChange(axes, '.set_xticks([])')
         addChange(axes, '.set_yticks([])')
@@ -1508,12 +1532,12 @@ class QItemProperties(QtWidgets.QWidget):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
-                                              getReference(self.element), getReference(text)), text, ".new")
+                                                  getReference(self.element), getReference(text)), text, ".new")
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
-                                              getReference(self.element), getReference(text)), text, ".new")
+                                                  getReference(self.element), getReference(text)), text, ".new")
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()
@@ -1523,8 +1547,12 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddAnnotationClicked(self):
-        text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowprops=dict(arrowstyle="->"))
-        self.fig.change_tracker.addChange(self.element, ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (text.xy, text.get_position(), getReference(text)),
+        text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]),
+                                     (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
+                                     arrowprops=dict(arrowstyle="->"))
+        self.fig.change_tracker.addChange(self.element,
+                                          ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (
+                                          text.xy, text.get_position(), getReference(text)),
                                           text, ".new")
 
         self.tree.updateEntry(self.element, update_children=True)
@@ -1537,12 +1565,12 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddRectangleClicked(self):
         p = mpl.patches.Rectangle((self.element.get_xlim()[0], self.element.get_ylim()[0]),
-                                        width=np.mean(self.element.get_xlim()), height=np.mean(self.element.get_ylim()),)
+                                  width=np.mean(self.element.get_xlim()), height=np.mean(self.element.get_ylim()), )
         self.element.add_patch(p)
 
         self.fig.change_tracker.addChange(self.element,
                                           ".add_patch(mpl.patches.Rectangle(%s, width=%s, height=%s))  # id=%s.new" % (
-                                          p.get_xy(), p.get_width(), p.get_height(), getReference(p)),
+                                              p.get_xy(), p.get_width(), p.get_height(), getReference(p)),
                                           p, ".new")
 
         self.tree.updateEntry(self.element, update_children=True)
@@ -1554,10 +1582,15 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddArrowClicked(self):
-        p = mpl.patches.FancyArrowPatch((self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowstyle="Simple,head_length=10,head_width=10,tail_width=2", facecolor="black", clip_on=False, zorder=2)
+        p = mpl.patches.FancyArrowPatch((self.element.get_xlim()[0], self.element.get_ylim()[0]),
+                                        (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
+                                        arrowstyle="Simple,head_length=10,head_width=10,tail_width=2",
+                                        facecolor="black", clip_on=False, zorder=2)
         self.element.add_patch(p)
 
-        self.fig.change_tracker.addChange(self.element, ".add_patch(mpl.patches.FancyArrowPatch(%s, %s, arrowstyle='Simple,head_length=10,head_width=10,tail_width=2', facecolor='black', clip_on=False, zorder=2))  # id=%s.new" % (p._posA_posB[0], p._posA_posB[1], getReference(p)),
+        self.fig.change_tracker.addChange(self.element,
+                                          ".add_patch(mpl.patches.FancyArrowPatch(%s, %s, arrowstyle='Simple,head_length=10,head_width=10,tail_width=2', facecolor='black', clip_on=False, zorder=2))  # id=%s.new" % (
+                                          p._posA_posB[0], p._posA_posB[1], getReference(p)),
                                           p, ".new")
 
         self.tree.updateEntry(self.element, update_children=True)
@@ -1585,10 +1618,11 @@ class QItemProperties(QtWidgets.QWidget):
             w, h = pos.width, pos.height
             pos.x0 = value[0]
             pos.y0 = value[1]
-            pos.x1 = value[0]+w
-            pos.y1 = value[1]+h
+            pos.x1 = value[0] + w
+            pos.y1 = value[1] + h
 
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
+            pos.x0, pos.y0, pos.width, pos.height))
         except AttributeError:
             pos = value
 
@@ -1601,20 +1635,22 @@ class QItemProperties(QtWidgets.QWidget):
 
             if self.scale_type == 0:
                 self.fig.set_size_inches(value)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
+                value[0] * 2.54, value[1] * 2.54))
             else:
                 if self.scale_type == 1:
                     changeFigureSize(value[0], value[1], fig=self.fig)
                 elif self.scale_type == 2:
                     changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
+                value[0] * 2.54, value[1] * 2.54))
                 for axes in self.fig.axes:
                     pos = axes.get_position()
-                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (
+                    pos.x0, pos.y0, pos.width, pos.height))
                 for text in self.fig.texts:
                     pos = text.get_position()
                     self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
-
 
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
@@ -1625,15 +1661,16 @@ class QItemProperties(QtWidgets.QWidget):
             pos.y1 = pos.y0 + value[1]
             self.element.set_position(pos)
 
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
+            pos.x0, pos.y0, pos.width, pos.height))
 
             self.fig.canvas.draw()
 
     def buttonDespineClicked(self):
-        commands = [".spines['right'].set_visible(False)", 
+        commands = [".spines['right'].set_visible(False)",
                     ".spines['top'].set_visible(False)"]
         for command in commands:
-            eval("self.element"+command)
+            eval("self.element" + command)
             self.fig.change_tracker.addChange(self.element, command)
         self.fig.canvas.draw()
 
@@ -1651,7 +1688,8 @@ class QItemProperties(QtWidgets.QWidget):
             return None
         if isinstance(element, Axes):
             if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54, 2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
+                return transforms.Affine2D().scale(2.54,
+                                                   2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
             if self.transform_index == 1:
                 return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
             if self.transform_index == 2:
@@ -1743,7 +1781,7 @@ class InfoDialog(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
 
         import pylustrator
-        self.label = QtWidgets.QLabel("<b>Version "+pylustrator.__version__+"</b>")
+        self.label = QtWidgets.QLabel("<b>Version " + pylustrator.__version__ + "</b>")
         font = self.label.font()
         font.setPointSize(16)
         self.label.setFont(font)
@@ -1786,7 +1824,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.x_scale = QtWidgets.QLabel(self.canvas_canvas)
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
-        self.canvas = MatplotlibWidget(self, number, size=size)
+        self.canvas = MatplotlibWidget(self, size=size)
         self.canvas.window = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
@@ -1859,8 +1897,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addWidget(self.canvas_canvas)
 
         # add toolbar
-        #self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        #self.layout_plot.addWidget(self.navi_toolbar)
+        # self.navi_toolbar = NavigationToolbar(self.canvas, self)
+        # self.layout_plot.addWidget(self.navi_toolbar)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
@@ -1873,10 +1911,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
         self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
         self.drag = None
-        
+
         self.footer_layout = QtWidgets.QHBoxLayout()
         self.layout_plot.addLayout(self.footer_layout)
-        
+
         self.footer_label = QtWidgets.QLabel("")
         self.footer_layout.addWidget(self.footer_label)
 
@@ -1885,8 +1923,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.footer_label2 = QtWidgets.QLabel("")
         self.footer_layout.addWidget(self.footer_label2)
 
-        #self.layout_plot.addStretch()
-        #self.layout_main.addStretch()
+        # self.layout_plot.addStretch()
+        # self.layout_main.addStretch()
 
     def actionSave(self):
         self.fig.change_tracker.save()
@@ -1895,7 +1933,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def actionSaveImage(self):
         path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure"),
-                                                "Images (*.png *.jpg *.pdf)")
+                                                     "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
             path = str(path[0])
         else:
@@ -1910,7 +1948,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.info_dialog.show()
 
     def updateRuler(self):
-        trans = transforms.Affine2D().scale(1./2.54, 1./2.54) + self.fig.dpi_scale_trans
+        trans = transforms.Affine2D().scale(1. / 2.54, 1. / 2.54) + self.fig.dpi_scale_trans
         l = 17
         l1 = 13
         l2 = 6
@@ -1933,7 +1971,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         offset = self.canvas_container.pos().x()
         start_x = np.floor(trans.inverted().transform((-offset, 0))[0])
-        end_x = np.ceil(trans.inverted().transform((-offset+w, 0))[0])
+        end_x = np.ceil(trans.inverted().transform((-offset + w, 0))[0])
         dx = 0.1
         for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = (trans.transform((pos_cm, 0))[0] + offset)
@@ -1941,22 +1979,23 @@ class PlotWindow(QtWidgets.QWidget):
                 painterX.drawLine(x, l - l1 - 1, x, l - 1)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterX.drawText(x+3, o, self.fontMetrics().width(text), o+self.fontMetrics().height(), QtCore.Qt.AlignLeft,
-                                 text)
+                painterX.drawText(x + 3, o, self.fontMetrics().width(text), o + self.fontMetrics().height(),
+                                  QtCore.Qt.AlignLeft,
+                                  text)
             elif i % 2 == 0:
                 painterX.drawLine(x, l - l2 - 1, x, l - 1)
             else:
                 painterX.drawLine(x, l - l3 - 1, x, l - 1)
-        painterX.drawLine(0, l-2, w, l-2)
+        painterX.drawLine(0, l - 2, w, l - 2)
         painterX.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
-        painterX.drawLine(0, l-1, w, l-1)
+        painterX.drawLine(0, l - 1, w, l - 1)
         self.x_scale.setPixmap(self.pixmapX)
         self.x_scale.setMinimumSize(w, l)
         self.x_scale.setMaximumSize(w, l)
 
-        #height_cm = self.fig.get_size_inches()[1]*2.45
+        # height_cm = self.fig.get_size_inches()[1]*2.45
         offset = self.canvas_container.pos().y() + self.canvas_container.height()
-        start_y = np.floor(trans.inverted().transform((0, +offset-h))[1])
+        start_y = np.floor(trans.inverted().transform((0, +offset - h))[1])
         end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
         dy = 0.1
         for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
@@ -1965,15 +2004,16 @@ class PlotWindow(QtWidgets.QWidget):
                 painterY.drawLine(l - l1 - 1, y, l - 1, y)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterY.drawText(o, y+3, o+self.fontMetrics().width(text), self.fontMetrics().height(), QtCore.Qt.AlignRight,
-                                 text)
+                painterY.drawText(o, y + 3, o + self.fontMetrics().width(text), self.fontMetrics().height(),
+                                  QtCore.Qt.AlignRight,
+                                  text)
             elif i % 2 == 0:
                 painterY.drawLine(l - l2 - 1, y, l - 1, y)
             else:
                 painterY.drawLine(l - l3 - 1, y, l - 1, y)
-        painterY.drawLine(l-2, 0, l-2, h)
+        painterY.drawLine(l - 2, 0, l - 2, h)
         painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
-        painterY.drawLine(l-1, 0, l-1, h)
+        painterY.drawLine(l - 1, 0, l - 1, h)
         painterY.setPen(QtGui.QPen(QtGui.QColor("#f0f0f0"), 0))
         painterY.setBrush(QtGui.QBrush(QtGui.QColor("#f0f0f0")))
         painterY.drawRect(0, 0, l, l)
@@ -1983,7 +2023,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         w, h = self.canvas.get_width_height()
 
-        self.pixmap = QtGui.QPixmap(w+100, h+10)
+        self.pixmap = QtGui.QPixmap(w + 100, h + 10)
 
         self.pixmap.fill(QtGui.QColor("transparent"))
 
@@ -1991,14 +2031,14 @@ class PlotWindow(QtWidgets.QWidget):
 
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(QtGui.QBrush(QtGui.QColor("#666666")))
-        painter.drawRect(2, 2, w + 2,  h + 2)
-        painter.drawRect(0, 0, w+2, h+2)
+        painter.drawRect(2, 2, w + 2, h + 2)
+        painter.drawRect(0, 0, w + 2, h + 2)
 
         p = self.canvas_container.pos()
         self.shadow.setPixmap(self.pixmap)
-        self.shadow.move(p.x()-1, p.y()-1)
-        self.shadow.setMinimumSize(w+100, h+10)
-        self.shadow.setMaximumSize(w+100, h+10)
+        self.shadow.move(p.x() - 1, p.y() - 1)
+        self.shadow.setMinimumSize(w + 100, h + 10)
+        self.shadow.setMaximumSize(w + 100, h + 10)
 
     def showEvent(self, event):
         self.fitToView()
@@ -2066,7 +2106,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.fitted_to_view = True
         if change_dpi:
             w, h = self.canvas.get_width_height()
-            factor = min( (self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
+            factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
             self.fig.set_dpi(self.fig.get_dpi() * factor)
             self.fig.canvas.draw()
 
@@ -2083,10 +2123,11 @@ class PlotWindow(QtWidgets.QWidget):
 
         else:
             w, h = self.canvas.get_width_height()
-            self.canvas_canvas.setMinimumWidth(w+30)
-            self.canvas_canvas.setMinimumHeight(h+30)
+            self.canvas_canvas.setMinimumWidth(w + 30)
+            self.canvas_canvas.setMinimumHeight(h + 30)
 
-            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5, (self.canvas_canvas.height() - h) / 2 + 5)
+            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
+                                       (self.canvas_canvas.height() - h) / 2 + 5)
             self.updateRuler()
 
     def keyReleaseEvent(self, event):
@@ -2125,14 +2166,14 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas_container.setMaximumSize(w, h)
 
     def changedFigureSize(self, tuple):
-        self.fig.set_size_inches(np.array(tuple)/2.54)
+        self.fig.set_size_inches(np.array(tuple) / 2.54)
         self.fig.canvas.draw()
 
     def elementSelected(self, element):
         self.input_properties.setElement(element)
 
     def update(self):
-        #self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
+        # self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
         self.treeView.deleteEntry(self.fig)
         self.treeView.expand(None)
         self.treeView.expand(self.fig)
@@ -2141,14 +2182,18 @@ class PlotWindow(QtWidgets.QWidget):
             def newfunc(element, event=None):
                 self.select_element(element)
                 return func(element, event)
+
             return newfunc
+
         self.fig.figure_dragger.on_select = wrap(self.fig.figure_dragger.on_select)
 
         def wrap(func):
             def newfunc(*args):
                 self.updateTitle()
                 return func(*args)
+
             return newfunc
+
         self.fig.change_tracker.addChange = wrap(self.fig.change_tracker.addChange)
 
         self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
@@ -2172,7 +2217,7 @@ class PlotWindow(QtWidgets.QWidget):
     def closeEvent(self, event):
         if not self.fig.change_tracker.saved:
             reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
-                                                                    'All data will be lost.\nDo you want to save it?',
+                                                                                  'All data will be lost.\nDo you want to save it?',
                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.Yes)
 

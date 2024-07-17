@@ -24,9 +24,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle, Ellipse
-
+from matplotlib.axes import Axes
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive
-from .change_tracker import ChangeTracker
+from .change_tracker import ChangeTracker, UndoRedo
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -176,6 +176,115 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.update_grabber()
         else:
             self.hide_grabber()
+
+    def align_points(self, mode: str):
+        """ a function to apply the alignment options, e.g. align all selected elements at the top or with equal spacing. """
+        if len(self.targets) == 0:
+            return
+
+        if mode == "group":
+            from pylustrator.helper_functions import axes_to_grid
+            #return axes_to_grid([target.target for target in self.targets], track_changes=True)
+            with UndoRedo([target.target for target in self.targets if isinstance(target.target, Axes)], "Grid Align"):
+                axes_to_grid([target.target for target in self.targets if isinstance(target.target, Axes)], track_changes=False)
+
+        def align(y: int, func: callable):
+            self.start_move()
+            centers = []
+            for target in self.targets:
+                new_points = np.array(target.get_positions())
+                centers.append(func(new_points[:, y]))
+            new_center = func(self.positions[y::2])
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions())
+                new_points[:, y] += new_center - centers[index]
+                target.set_positions(new_points)
+            self.update_extent()
+            self.has_moved = True
+            self.end_move()
+
+            self.figure.canvas.draw()
+            self.update_selection_rectangles()
+
+        def distribute(y: int):
+            self.start_move()
+            sizes = []
+            positions = []
+            for target in self.targets:
+                new_points = np.array(target.get_positions())
+                sizes.append(np.diff(new_points[:, y])[0])
+                positions.append(np.min(new_points[:, y]))
+            order = np.argsort(positions)
+            spaces = np.diff(self.positions[y::2])[0] - np.sum(sizes)
+            spaces /= max([(len(self.targets)-1), 1])
+            pos = np.min(self.positions[y::2])
+            for index in order:
+                target = self.targets[index]
+                new_points = np.array(target.get_positions())
+                new_points[:, y] += pos - np.min(new_points[:, y])
+                target.set_positions(new_points)
+                pos += sizes[index] + spaces
+            self.has_moved = True
+            self.end_move()
+
+            self.figure.canvas.draw()
+            self.update_selection_rectangles()
+
+        if mode == "center_x":
+            align(0, np.mean)
+
+        if mode == "left_x":
+            align(0, np.min)
+
+        if mode == "right_x":
+            align(0, np.max)
+
+        if mode == "center_y":
+            align(1, np.mean)
+
+        if mode == "bottom_y":
+            align(1, np.min)
+
+        if mode == "top_y":
+            align(1, np.max)
+
+        if mode == "distribute_x":
+            distribute(0)
+
+        if mode == "distribute_y":
+            distribute(1)
+
+    def update_selection_rectangles(self, use_previous_offset=False):
+        """ update the selection visualisation """
+        if len(self.targets) == 0:
+            return
+        if 0:
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions())
+                for i in range(2):
+                    rect = self.targets_rects[index*2+i]
+                    rect.set_xy(new_points[0])
+                    rect.set_width(new_points[1][0] - new_points[0][0])
+                    rect.set_height(new_points[1][1] - new_points[0][1])
+        else:
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions(use_previous_offset, update_offset=True))
+                if new_points.shape[0] == 3:
+                    x0, y0, x1, y1 = np.min(new_points[1:, 0]), np.min(new_points[1:, 1]), np.max(
+                        new_points[1:, 0]), np.max(
+                        new_points[1:, 1])
+                else:
+                    x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(
+                        new_points[:, 0]), np.max(
+                        new_points[:, 1])
+                w0, h0 = x1 - x0, y1 - y0
+                for i in range(2):
+                    rect: Rectangle = self.targets_rects[index * 2 + i]
+                    rect.set_x(x0)
+                    rect.set_y(y0)
+                    rect.set_width(w0)
+                    rect.set_height(h0)
+                    # rect.setRect(x0, y0, w0, h0)
 
     def remove_target(self, target):
         targets_non_wrapped = [t.target for t in self.targets]
@@ -393,9 +502,7 @@ class DragManager:
 
         self.figure.canvas.mpl_disconnect(self.figure.canvas.manager.key_press_handler_id)
 
-        self.c3 = self.figure.canvas.mpl_connect('button_release_event', self.button_release_event0)
-        self.c2 = self.figure.canvas.mpl_connect('button_press_event', self.button_press_event0)
-        self.c4 = self.figure.canvas.mpl_connect('key_press_event', self.key_press_event)
+        self.activate()
 
         # make all the subplots pickable
         for index, axes in enumerate(self.figure.axes):
@@ -495,7 +602,7 @@ class DragManager:
         self.figure.canvas.draw()
 
     def on_deselect(self, event):
-        modifier = "shift" in event.key.split("+") if event is not None and event.key is not None else False
+        modifier = "control" in event.key.split("+") if event is not None and event.key is not None else False
         if not modifier:
             self.selection.clear_targets()
 
@@ -516,6 +623,23 @@ class DragManager:
             self.selected_element = None
             self.on_select(None, None)
             self.figure.canvas.draw()
+
+    def activate(self):
+        """ activate the interaction callbacks from the figure """
+        self.c3 = self.figure.canvas.mpl_connect('button_release_event', self.button_release_event0)
+        self.c2 = self.figure.canvas.mpl_connect('button_press_event', self.button_press_event0)
+        self.c4 = self.figure.canvas.mpl_connect('key_press_event', self.key_press_event)
+
+    def deactivate(self):
+        """ deactivate the interaction callbacks from the figure """
+        self.figure.canvas.mpl_disconnect(self.c3)
+        self.figure.canvas.mpl_disconnect(self.c2)
+        self.figure.canvas.mpl_disconnect(self.c4)
+
+        self.selection.clear_targets()
+        self.selected_element = None
+        self.on_select(None, None)
+        self.figure.canvas.draw()
 
 class GrabberGeneric(GrabFunctions):
 

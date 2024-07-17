@@ -32,6 +32,8 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from natsort import natsorted
 
+from pylustrator.helper_functions import main_figure
+
 
 def getReference(element):
     if element is None:
@@ -394,3 +396,22 @@ def insertTextToFile(new_block, stack_pos, figure_id_line):
             for line in fp2:
                 fp1.write(line)
     print("save", figure_id_line, "to", stack_pos.filename, "line %d-%d" % (written, written_end))
+class UndoRedo:
+    def __init__(self, elements, name):
+        self.elements = list(elements)
+        self.name = name
+        if len(elements):
+            self.figure = main_figure(elements[0])
+            self.change_tracker = self.figure.change_tracker
+
+    def __enter__(self):
+        if len(self.elements):
+            self.undo = self.change_tracker.get_element_restore_function(self.elements)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if len(self.elements):
+            self.redo = self.change_tracker.get_element_restore_function(self.elements)
+            self.redo()
+            self.figure.canvas.draw()
+            self.figure.signals.figure_selection_property_changed.emit()
+            self.change_tracker.addEdit([self.undo, self.redo, self.name])

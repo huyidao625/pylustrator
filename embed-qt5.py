@@ -1,33 +1,39 @@
+import os
 import sys
 import time
 
 import numpy as np
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMainWindow
+from matplotlib import _pylab_helpers, transforms
 
-from matplotlib.backends.backend_qtagg import FigureCanvas
-from matplotlib.backends.backend_qtagg import \
-    NavigationToolbar2QT as NavigationToolbar
-from matplotlib.backends.qt_compat import QtWidgets
-from matplotlib.figure import Figure
-import matplotlib.transforms as transforms
-
+from pylustrator.components.align import Align
+from pylustrator.components.plot_layout import ToolBar
 from pylustrator.drag_helper import DragManager
 from pylustrator.matplotlibwidget import MatplotlibWidget
 
 
-class ApplicationWindow(QtWidgets.QMainWindow):
+class ApplicationWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._main = QtWidgets.QWidget()
+        self.canvas_canvas = self._main
         self.setCentralWidget(self._main)
         layout = QtWidgets.QVBoxLayout(self._main)
 
         self.canvas = MatplotlibWidget(self)
+        _pylab_helpers.Gcf.set_active(self.canvas.manager)
         self.fig = self.canvas.figure
-        self.fig.number = 1
-
-
         layout.addWidget(self.canvas)
+
+        self.x_scale = QtWidgets.QLabel(self.canvas)
+        self.y_scale = QtWidgets.QLabel(self.canvas)
+
+        self.toolbar = ToolBar(self.canvas, self.fig)
+        layout.addWidget(self.toolbar)
+
+
+        Align(layout, self.fig) # The ctrl and shift keys are switched
 
         np.random.seed(1)
         t = np.arange(0.0, 2, 0.001)
@@ -45,67 +51,117 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         ax3.bar(0, np.mean(a))
         ax3.bar(1, np.mean(b))
         DragManager(self.fig)
+        self.fig.figure_dragger.on_select = self.wrap(self.fig.figure_dragger.on_select)
+        self.updateRuler()
+
+    def wrap(self, func):
+        def newfunc(element, event=None):
+            self.axes_select(element)
+            return func(element, event)
+
+        return newfunc
+
+    def axes_select(self, element):
+        print(element)
+
+    def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
+        self.fig.figure_dragger.selection.clear_targets()
+        self.fig.figure_dragger.selected_element = None
+        self.fig.figure_dragger.on_select(None, None)
+        self.fig.figure_dragger.figure.canvas.draw()
+        self.updateRuler()
+
+    def showEvent(self, event):
+        self.updateRuler()
 
 
+    def updateRuler(self):
+        trans = transforms.Affine2D().scale(1. / 2.54, 1. / 2.54) + self.fig.dpi_scale_trans
+        l = 17
+        l1 = 13
+        l2 = 6
+        l3 = 4
 
+        w = self.canvas.width()
+        h = self.canvas.height()
 
+        self.pixmapX = QtGui.QPixmap(w, l)
+        self.pixmapY = QtGui.QPixmap(l, h)
 
-    def mouse_move_event(self, event):
-        if self.drag is not None:
-            pos = np.array([event.x, event.y])
-            offset = pos - self.drag
-            offset[1] = -offset[1]
-            self.moveCanvasCanvas(*offset)
-        trans = transforms.Affine2D().scale(2.54, 2.54) + self.fig.dpi_scale_trans.inverted()
-        pos = trans.transform((event.x, event.y))
-        # self.footer_label.setText("%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y))
-        #
-        # if event.ydata is not None:
-        #     self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))
-        # else:
-        #     self.footer_label2.setText("")
+        self.pixmapX.fill(QtGui.QColor("#f0f0f0"))
+        self.pixmapY.fill(QtGui.QColor("#f0f0f0"))
 
-    def scroll_event(self, event):
-        if self.control_modifier:
-            new_dpi = self.fig.get_dpi() + 10 * event.step
+        painterX = QtGui.QPainter(self.pixmapX)
+        painterY = QtGui.QPainter(self.pixmapY)
 
-            self.fig.figure_dragger.select_element(None)
+        painterX.setPen(QtGui.QPen(QtGui.QColor("black"), 1))
+        painterY.setPen(QtGui.QPen(QtGui.QColor("black"), 1))
 
-            pos = self.fig.transFigure.inverted().transform((event.x, event.y))
-            pos_ax = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
+        offset = self.canvas.pos().x()
+        start_x = np.floor(trans.inverted().transform((-offset, 0))[0])
+        end_x = np.ceil(trans.inverted().transform((-offset + w, 0))[0])
+        dx = 0.1
+        for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
+            x = (trans.transform((pos_cm, 0))[0] + offset)
+            if i % 10 == 0:
+                painterX.drawLine(x, l - l1 - 1, x, l - 1)
+                text = str("%d" % np.round(pos_cm))
+                o = 0
+                painterX.drawText(x + 3, o, self.fontMetrics().width(text), o + self.fontMetrics().height(),
+                                  QtCore.Qt.AlignLeft,
+                                  text)
+            elif i % 2 == 0:
+                painterX.drawLine(x, l - l2 - 1, x, l - 1)
+            else:
+                painterX.drawLine(x, l - l3 - 1, x, l - 1)
+        painterX.drawLine(0, l - 2, w, l - 2)
+        painterX.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
+        painterX.drawLine(0, l - 1, w, l - 1)
+        self.x_scale.setPixmap(self.pixmapX)
+        self.x_scale.setMinimumSize(w, l)
+        self.x_scale.setMaximumSize(w, l)
 
-            self.fig.set_dpi(new_dpi)
-            self.fig.canvas.draw()
+        # height_cm = self.fig.get_size_inches()[1]*2.45
+        offset = self.canvas.pos().y() + self.canvas.height()
+        start_y = np.floor(trans.inverted().transform((0, +offset - h))[1])
+        end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
+        dy = 0.1
+        for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
+            y = (-trans.transform((0, pos_cm))[1] + offset)
+            if i % 10 == 0:
+                painterY.drawLine(l - l1 - 1, y, l - 1, y)
+                text = str("%d" % np.round(pos_cm))
+                o = 0
+                painterY.drawText(o, y + 3, o + self.fontMetrics().width(text), self.fontMetrics().height(),
+                                  QtCore.Qt.AlignRight,
+                                  text)
+            elif i % 2 == 0:
+                painterY.drawLine(l - l2 - 1, y, l - 1, y)
+            else:
+                painterY.drawLine(l - l3 - 1, y, l - 1, y)
+        painterY.drawLine(l - 2, 0, l - 2, h)
+        painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
+        painterY.drawLine(l - 1, 0, l - 1, h)
+        painterY.setPen(QtGui.QPen(QtGui.QColor("#f0f0f0"), 0))
+        painterY.setBrush(QtGui.QBrush(QtGui.QColor("#f0f0f0")))
+        painterY.drawRect(0, 0, l, l)
+        self.y_scale.setPixmap(self.pixmapY)
+        self.y_scale.setMinimumSize(l, h)
+        self.y_scale.setMaximumSize(l, h)
 
-            self.canvas.updateGeometry()
-            w, h = self.canvas.get_width_height()
-            self.canvas_container.setMinimumSize(w, h)
-            self.canvas_container.setMaximumSize(w, h)
+        w, h = self.canvas.get_width_height()
 
-            pos2 = self.fig.transFigure.transform(pos)
-            diff = np.array([event.x, event.y]) - pos2
+        self.pixmap = QtGui.QPixmap(w + 100, h + 10)
 
-            pos_ax2 = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
-            diff += pos_ax2 - pos_ax
-            self.moveCanvasCanvas(*diff)
+        self.pixmap.fill(QtGui.QColor("transparent"))
 
-            bb = self.fig.axes[0].get_position()
+        painter = QtGui.QPainter(self.pixmap)
 
-    def button_press_event(self, event):
-        if event.button == 2:
-            self.drag = np.array([event.x, event.y])
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtGui.QBrush(QtGui.QColor("#666666")))
+        painter.drawRect(2, 2, w + 2, h + 2)
+        painter.drawRect(0, 0, w + 2, h + 2)
 
-    def canvas_key_press(self, event):
-        if event.key == "control":
-            self.control_modifier = True
-
-    def canvas_key_release(self, event):
-        if event.key == "control":
-            self.control_modifier = False
-
-    def button_release_event(self, event):
-        if event.button == 2:
-            self.drag = None
 
 
 if __name__ == "__main__":
@@ -116,6 +172,7 @@ if __name__ == "__main__":
         qapp = QtWidgets.QApplication(sys.argv)
 
     app = ApplicationWindow()
+    app.setWindowTitle('QMainwindow - Embed Qt5 ')
     app.show()
     app.activateWindow()
     app.raise_()
